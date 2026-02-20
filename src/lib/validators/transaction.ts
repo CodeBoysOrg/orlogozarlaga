@@ -6,7 +6,7 @@ export const createTransactionSchema = z.object({
   category: z.string().min(1),
   amount: z.number().int().positive(),
   description: z.string().max(200).optional(),
-  date: z.string().min(1), // ISO string
+  date: z.string().datetime(), // ISO string
 });
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
