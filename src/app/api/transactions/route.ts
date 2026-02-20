@@ -38,13 +38,17 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const parsed = createTransactionSchema.parse(body);
+    const date = new Date(parsed.date);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error("Invalid date");
+    }
     const created = await transactionService.create(userId, {
       accountId: parsed.accountId,
       type: parsed.type,
       category: parsed.category,
       amount: parsed.amount,
       description: parsed.description,
-      date: new Date(parsed.date),
+      date,
     });
 
     return NextResponse.json(
