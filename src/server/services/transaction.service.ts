@@ -2,7 +2,32 @@ import { prisma } from "@/lib/db/prisma";
 import { accountRepo } from "../repositories/account.repo";
 import { transactionRepo } from "../repositories/transaction.repo";
 
+function isTransactionType(value: string): value is "INCOME" | "EXPENSE" {
+  return value === "INCOME" || value === "EXPENSE";
+}
+
 export const transactionService = {
+  list(args: {
+    userId: string;
+    start: Date;
+    end: Date;
+    type?: string | null;
+  }) {
+    const normalizedType =
+      args.type && isTransactionType(args.type) ? args.type : undefined;
+
+    if (args.type && !normalizedType) {
+      throw new Error("Invalid transaction type. Use INCOME or EXPENSE");
+    }
+
+    return transactionRepo.list({
+      userId: args.userId,
+      start: args.start,
+      end: args.end,
+      ...(normalizedType ? { type: normalizedType } : {}),
+    });
+  },
+
   async create(
     userId: string,
     input: {
@@ -14,18 +39,21 @@ export const transactionService = {
       date: Date;
     },
   ) {
-    const account = await accountRepo.findById(input.accountId);
-    if (!account || account.userId !== userId)
-      throw new Error("Account not found");
-
-    const nextBalance =
-      input.type === "INCOME"
-        ? account.balance + input.amount
-        : account.balance - input.amount;
+    const balanceDelta = input.type === "INCOME" ? input.amount : -input.amount;
 
     // IMPORTANT: both create transaction + update balance must be atomic
     const created = await prisma.$transaction(async (tx) => {
-      const t = await transactionRepo.createTx(tx, {
+      const updated = await accountRepo.incrementBalanceIfOwnedTx(tx, {
+        accountId: input.accountId,
+        userId,
+        by: balanceDelta,
+      });
+
+      if (updated.count === 0) {
+        throw new Error("Account not found");
+      }
+
+      return transactionRepo.createTx(tx, {
         userId,
         accountId: input.accountId,
         type: input.type,
@@ -34,9 +62,6 @@ export const transactionService = {
         description: input.description,
         date: input.date,
       });
-
-      await accountRepo.updateBalanceTx(tx, input.accountId, nextBalance);
-      return t;
     });
 
     return created;

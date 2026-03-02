@@ -2,39 +2,35 @@ import { NextResponse } from "next/server";
 import { getUserId } from "@/lib/auth/getUserId";
 import { getMonthRange } from "@/lib/date/monthRange";
 import { createTransactionSchema } from "@/lib/validators/transaction";
-import { transactionRepo } from "@/server/repositories/transaction.repo";
 import { transactionService } from "@/server/services/transaction.service";
 
 export async function GET(req: Request) {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(req);
     const { searchParams } = new URL(req.url);
 
     const month =
       searchParams.get("month") ?? new Date().toISOString().slice(0, 7); // YYYY-MM
-    const type = searchParams.get("type") as "INCOME" | "EXPENSE" | null;
+    const type = searchParams.get("type");
 
     const { start, end } = getMonthRange(month);
-    const transactions = await transactionRepo.list({
+    const transactions = await transactionService.list({
       userId,
       start,
       end,
-      ...(type ? { type } : {}),
+      type,
     });
 
     return NextResponse.json({ ok: true, transactions });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Error";
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(req);
     const body = await req.json();
 
     const parsed = createTransactionSchema.parse(body);
@@ -42,6 +38,7 @@ export async function POST(req: Request) {
     if (Number.isNaN(date.getTime())) {
       throw new Error("Invalid date");
     }
+
     const created = await transactionService.create(userId, {
       accountId: parsed.accountId,
       type: parsed.type,
@@ -57,9 +54,6 @@ export async function POST(req: Request) {
     );
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Error";
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }

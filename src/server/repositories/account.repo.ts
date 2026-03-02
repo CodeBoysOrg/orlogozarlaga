@@ -10,20 +10,17 @@ export const accountRepo = {
     });
   },
 
-  findById(accountId: string) {
-    return prisma.account.findUnique({ where: { id: accountId } });
-  },
-
-  updateBalanceTx(
+  incrementBalanceIfOwnedTx(
     tx: Prisma.TransactionClient,
-    accountId: string,
-    balance: number,
+    args: {
+      accountId: string;
+      userId: string;
+      by: number;
+    },
   ) {
-    // tx is Prisma transaction client
-    return tx.account.update({
-      where: { id: accountId },
-      data: { balance },
-      select: { id: true, name: true, balance: true },
+    return tx.account.updateMany({
+      where: { id: args.accountId, userId: args.userId },
+      data: { balance: { increment: args.by } },
     });
   },
 };

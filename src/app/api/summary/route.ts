@@ -5,7 +5,7 @@ import { summaryService } from "@/server/services/summary.service";
 
 export async function GET(req: Request) {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(req);
     const { searchParams } = new URL(req.url);
 
     const month =
@@ -16,9 +16,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, ...summary });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Error";
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }
