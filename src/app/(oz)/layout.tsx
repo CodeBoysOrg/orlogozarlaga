@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { SquareUserRound } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { isAuth0Configured } from "@/lib/auth/auth0";
 
 const navLinks = [
   { name: "My Pocket", href: "/pocketDashboard" },
@@ -24,6 +25,8 @@ type MeResponse = {
 
 export default function OzLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [displayName, setDisplayName] = useState("User");
 
   useEffect(() => {
@@ -52,13 +55,25 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const handleLogout = () => {
-    if (typeof window === "undefined") return;
+  const handleLogout = async () => {
+    if (isAuth0Configured) {
+      if (typeof window === "undefined") return;
 
-    const absoluteReturnTo = `${window.location.origin}/login`;
-    window.location.assign(
-      `/auth/logout?returnTo=${encodeURIComponent(absoluteReturnTo)}`,
-    );
+      const absoluteReturnTo = `${window.location.origin}/login`;
+      window.location.assign(
+        `/auth/logout?returnTo=${encodeURIComponent(absoluteReturnTo)}`,
+      );
+      return;
+    }
+
+    try {
+      setLoggingOut(true);
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -101,12 +116,12 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
                 {displayName}
               </p>
             </div>
-
             <button
               type="button"
               onClick={handleLogout}
-              className="shrink-0 cursor-pointer rounded-xl border border-[#cfe0d6] bg-white/70 px-3 py-2 text-sm font-medium text-[#2f4b41] hover:bg-[#e7f0ea]">
-              Logout
+              disabled={loggingOut}
+              className="shrink-0 cursor-pointer rounded-xl border border-[#cfe0d6] bg-white/70 px-3 py-2 text-sm font-medium text-[#2f4b41] hover:bg-[#e7f0ea] disabled:cursor-not-allowed disabled:opacity-60">
+              {loggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>
         </aside>

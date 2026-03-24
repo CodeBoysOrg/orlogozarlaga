@@ -1,25 +1,57 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useMemo, useState } from "react";
 import { isAuth0Configured } from "@/lib/auth/auth0";
 
-type LoginPageProps = {
-  searchParams?: Promise<{
-    returnTo?: string | string[];
-  }>;
-};
+function LoginPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const params = (await searchParams) ?? {};
-  const requestedReturnTo = Array.isArray(params.returnTo)
-    ? params.returnTo[0]
-    : params.returnTo;
-  const returnTo =
-    requestedReturnTo && requestedReturnTo.startsWith("/")
-      ? requestedReturnTo
-      : "/pocketDashboard";
+  const returnTo = useMemo(() => {
+    const value = searchParams.get("returnTo");
+    return value && value.startsWith("/") ? value : "/pocketDashboard";
+  }, [searchParams]);
+
   const loginHref = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
   const signupHref = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(
     returnTo,
   )}`;
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const payload = (await response.json()) as {
+        success: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message ?? "Login failed");
+      }
+
+      router.replace(returnTo);
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
@@ -33,8 +65,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Welcome back
             </h1>
             <p className="soft-text mt-2 max-w-sm text-sm leading-6">
-              Use Auth0 Universal Login so sign-in, sign-up, and password reset stay
-              outside your app and remain easy to maintain.
+              Track income, control spending, and keep your monthly finance clear in
+              one place.
             </p>
           </div>
 
@@ -78,14 +110,73 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-[#ead9b7] bg-[#fff9eb] p-4 text-sm text-[#6c5830]">
-              `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`,
-              `AUTH0_SECRET`, `APP_BASE_URL` env-үүдээ нэмсний дараа Auth0 login
-              идэвхжинэ.
-            </div>
+            <form className="space-y-3" onSubmit={onSubmit}>
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
+                  Email
+                </span>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
+                  Password
+                </span>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
+                />
+              </label>
+
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Link href="/forgot-pass" className="text-sm text-[#2e7964] hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
+                {loading ? "Logging in..." : "Login"}
+              </button>
+            </form>
           )}
+
+          <p className="mt-4 text-center text-sm text-[#4a6559]">
+            New here?{" "}
+            <Link href="/signup" className="font-medium text-[#2e7964] hover:underline">
+              Create account
+            </Link>
+          </p>
         </section>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
+          <div className="panel-surface w-full rounded-3xl p-4 sm:p-6">
+            <p className="text-sm text-[#4a6559]">Loading login...</p>
+          </div>
+        </div>
+      }>
+      <LoginPageContent />
+    </Suspense>
   );
 }

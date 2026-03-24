@@ -1,11 +1,12 @@
 import { auth0 } from "@/lib/auth/auth0";
+import { getLocalSession } from "@/lib/auth/local-session";
 import { AuthenticatedUser } from "@/types";
 import { UnauthorizedError } from "@/utils/errors";
 import { userRepo } from "../repositories/user.repo";
 
 export const authService = {
   async requireAuthenticatedUser(): Promise<AuthenticatedUser> {
-    const session = await auth0.getSession();
+    const session = (await auth0.getSession()) ?? (await getLocalSession());
     const sub = session?.user.sub;
     const email = session?.user.email;
 
