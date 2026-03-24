@@ -15,7 +15,6 @@ AUTH0_DOMAIN="your-tenant.us.auth0.com"
 AUTH0_CLIENT_ID="your-client-id"
 AUTH0_CLIENT_SECRET="your-client-secret"
 AUTH0_SECRET="32-byte-hex-secret"
-AUTH_SESSION_SECRET="change-me-to-a-long-random-secret"
 APP_BASE_URL="http://localhost:3000"
 ```
 
@@ -41,11 +40,6 @@ npx prisma db seed
 ```bash
 npm run dev
 ```
-
-## Demo Login
-
-- Email: `demo@user.com`
-- Password: `123456`
 
 ## Auth0 Setup
 
@@ -99,3 +93,9 @@ http://localhost:3000/login
 - Sign up or log in from Auth0 hosted page
 - Confirm you return to `/pocketDashboard`
 - Click `Logout` and confirm you return to `/login`
+
+## Notes
+
+- Authentication is Auth0-only. There is no local email/password fallback in this app.
+- `npx prisma db seed` creates a sample user record for `demo@user.com`, but access still
+  requires a real Auth0 login with the same email.

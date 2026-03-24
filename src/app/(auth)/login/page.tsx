@@ -1,57 +1,24 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useMemo, useState } from "react";
 import { isAuth0Configured } from "@/lib/auth/auth0";
 
-function LoginPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+type LoginPageProps = {
+  searchParams?: Promise<{
+    returnTo?: string | string[];
+  }>;
+};
 
-  const returnTo = useMemo(() => {
-    const value = searchParams.get("returnTo");
-    return value && value.startsWith("/") ? value : "/pocketDashboard";
-  }, [searchParams]);
-
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const rawReturnTo = Array.isArray(resolvedSearchParams?.returnTo)
+    ? resolvedSearchParams?.returnTo[0]
+    : resolvedSearchParams?.returnTo;
+  const returnTo =
+    rawReturnTo && rawReturnTo.startsWith("/") ? rawReturnTo : "/pocketDashboard";
   const loginHref = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
   const signupHref = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(
     returnTo,
   )}`;
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const payload = (await response.json()) as {
-        success: boolean;
-        message?: string;
-      };
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.message ?? "Login failed");
-      }
-
-      router.replace(returnTo);
-      router.refresh();
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const signupCtaHref = isAuth0Configured ? signupHref : "/signup";
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
@@ -92,15 +59,6 @@ function LoginPageContent() {
               </a>
 
               <p className="text-center text-sm text-[#4a6559]">
-                New here?{" "}
-                <a
-                  href={signupHref}
-                  className="font-medium text-[#2e7964] hover:underline">
-                  Create account
-                </a>
-              </p>
-
-              <p className="text-center text-sm text-[#4a6559]">
                 Need password help?{" "}
                 <Link
                   href="/forgot-pass"
@@ -110,73 +68,20 @@ function LoginPageContent() {
               </p>
             </div>
           ) : (
-            <form className="space-y-3" onSubmit={onSubmit}>
-              <label className="block">
-                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                  Email
-                </span>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                  Password
-                </span>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-                />
-              </label>
-
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <Link href="/forgot-pass" className="text-sm text-[#2e7964] hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
-                {loading ? "Logging in..." : "Login"}
-              </button>
-            </form>
+            <div className="rounded-2xl border border-[#f0c9a6] bg-[#fff7ef] p-4 text-sm leading-6 text-[#7a4a1d]">
+              Auth0 is not configured. Set `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`,
+              `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, and `APP_BASE_URL` to enable login.
+            </div>
           )}
 
           <p className="mt-4 text-center text-sm text-[#4a6559]">
             New here?{" "}
-            <Link href="/signup" className="font-medium text-[#2e7964] hover:underline">
+            <a href={signupCtaHref} className="font-medium text-[#2e7964] hover:underline">
               Create account
-            </Link>
+            </a>
           </p>
         </section>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
-          <div className="panel-surface w-full rounded-3xl p-4 sm:p-6">
-            <p className="text-sm text-[#4a6559]">Loading login...</p>
-          </div>
-        </div>
-      }>
-      <LoginPageContent />
-    </Suspense>
   );
 }

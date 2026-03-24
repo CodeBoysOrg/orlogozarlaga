@@ -1,54 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { FormEvent, useState } from "react";
 import { isAuth0Configured } from "@/lib/auth/auth0";
 
 export default function ForgotPassPage() {
   const loginHref = "/auth/login?returnTo=%2FpocketDashboard";
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/forgot-pass", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const payload = (await response.json()) as {
-        success: boolean;
-        message?: string;
-        data?: { message?: string };
-      };
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.message ?? "Failed to send reset link");
-      }
-
-      setSuccess(
-        payload.data?.message ??
-          "If an account exists, a reset link has been sent to your email.",
-      );
-      setEmail("");
-    } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Failed to send reset link",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
@@ -66,7 +20,7 @@ export default function ForgotPassPage() {
             <p className="soft-text mt-2 max-w-sm text-sm leading-6">
               {isAuth0Configured
                 ? "Auth0 Universal Login already includes password recovery, so the reset flow stays outside your app code."
-                : "Enter your email and we will simulate the password recovery request through the local auth API."}
+                : "Configure Auth0 to use hosted password reset through Universal Login."}
             </p>
           </div>
 
@@ -100,30 +54,10 @@ export default function ForgotPassPage() {
               </a>
             </div>
           ) : (
-            <form className="space-y-3" onSubmit={onSubmit}>
-              <label className="block">
-                <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                  Email
-                </span>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-                />
-              </label>
-
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
-              {success ? <p className="text-sm text-[#2a6b57]">{success}</p> : null}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
-                {loading ? "Sending..." : "Send reset link"}
-              </button>
-            </form>
+            <div className="rounded-2xl border border-[#f0c9a6] bg-[#fff7ef] p-4 text-sm leading-6 text-[#7a4a1d]">
+              Password reset is handled only by Auth0 Universal Login. Add the Auth0
+              environment variables, then use the hosted login screen.
+            </div>
           )}
 
           <p className="mt-4 text-center text-sm text-[#4a6559]">
