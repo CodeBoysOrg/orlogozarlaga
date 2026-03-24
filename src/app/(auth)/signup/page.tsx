@@ -1,50 +1,8 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { isAuth0Configured } from "@/lib/auth/auth0";
 
 export default function SignupPage() {
-  const router = useRouter();
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
-      });
-
-      const payload = (await response.json()) as {
-        success: boolean;
-        message?: string;
-      };
-
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.message ?? "Sign up failed");
-      }
-
-      router.replace("/pocketDashboard");
-      router.refresh();
-    } catch (submitError) {
-      setError(
-        submitError instanceof Error ? submitError.message : "Sign up failed",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const signupHref = "/auth/login?screen_hint=signup&returnTo=%2FpocketDashboard";
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
@@ -58,13 +16,14 @@ export default function SignupPage() {
               Build better money habits
             </h1>
             <p className="soft-text mt-2 max-w-sm text-sm leading-6">
-              Create your account and start tracking all your income and expense flows
-              from today.
+              Use Auth0 hosted sign-up so identity, verification, and password reset
+              stay out of your app code.
             </p>
           </div>
 
           <div className="rounded-2xl border border-[#cfe0d6] bg-white/70 p-4 text-sm text-[#2d4b3f]">
-            You can add accounts, monthly summaries and transaction categories.
+            New users will be redirected back to `pocketDashboard` after completing
+            sign-up.
           </div>
         </section>
 
@@ -76,75 +35,29 @@ export default function SignupPage() {
             <h2 className="mt-1 text-2xl font-semibold text-[#173a30]">Sign up</h2>
           </div>
 
-          <form className="space-y-3" onSubmit={onSubmit}>
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                Full name
-              </span>
-              <input
-                type="text"
-                placeholder="Your name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-              />
-            </label>
+          {isAuth0Configured ? (
+            <div className="space-y-3">
+              <a
+                href={signupHref}
+                className="block w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-center text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105">
+                Continue to Auth0 sign up
+              </a>
 
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                Email
-              </span>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                Password
-              </span>
-              <input
-                type="password"
-                placeholder="Create password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-                Confirm password
-              </span>
-              <input
-                type="password"
-                placeholder="Repeat password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2.5 outline-none focus:border-[#65a48b]"
-              />
-            </label>
-
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-2 w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
-              {loading ? "Creating account..." : "Create account"}
-            </button>
-          </form>
-
-          <p className="mt-4 text-center text-sm text-[#4a6559]">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-[#2e7964] hover:underline">
-              Login
-            </Link>
-          </p>
+              <p className="text-center text-sm text-[#4a6559]">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-[#2e7964] hover:underline">
+                  Login
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-[#ead9b7] bg-[#fff9eb] p-4 text-sm text-[#6c5830]">
+              Auth0 env тохируулаагүй байна. Setup хийсний дараа энэ page шууд
+              hosted sign-up screen рүү явна.
+            </div>
+          )}
         </section>
       </div>
     </div>

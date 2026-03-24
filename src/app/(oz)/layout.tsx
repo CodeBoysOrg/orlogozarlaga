@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { SquareUserRound } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const navLinks = [
   { name: "My Pocket", href: "/pocketDashboard" },
@@ -12,20 +12,53 @@ const navLinks = [
   { name: "Settings", href: "/settings" },
 ];
 
+type MeResponse = {
+  success: boolean;
+  data?: {
+    user?: {
+      name?: string | null;
+      email?: string | null;
+    };
+  };
+};
+
 export default function OzLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [loggingOut, setLoggingOut] = useState(false);
+  const [displayName, setDisplayName] = useState("User");
 
-  const onLogout = async () => {
-    try {
-      setLoggingOut(true);
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      router.replace("/login");
-      router.refresh();
-      setLoggingOut(false);
-    }
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        const payload = (await response.json()) as MeResponse;
+        if (!mounted || !response.ok || !payload.success) return;
+
+        const nextDisplayName =
+          payload.data?.user?.name?.trim() || payload.data?.user?.email || "User";
+        setDisplayName(nextDisplayName);
+      } catch {
+        if (mounted) {
+          setDisplayName("User");
+        }
+      }
+    };
+
+    void loadCurrentUser();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleLogout = () => {
+    if (typeof window === "undefined") return;
+
+    const absoluteReturnTo = `${window.location.origin}/login`;
+    window.location.assign(
+      `/auth/logout?returnTo=${encodeURIComponent(absoluteReturnTo)}`,
+    );
   };
 
   return (
@@ -61,17 +94,19 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3 justify-between rounded-2xl border border-[#cfe0d6] bg-white/70 px-3 py-2.5">
-            <SquareUserRound size={28} className="text-[#2e5e54]" />
-            <p className="truncate text-sm font-medium text-[#25453b]">
-              Demo User
-            </p>
+          <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl border border-[#cfe0d6] bg-white/70 px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-3">
+              <SquareUserRound size={28} className="shrink-0 text-[#2e5e54]" />
+              <p className="truncate text-sm font-medium text-[#25453b]">
+                {displayName}
+              </p>
+            </div>
+
             <button
               type="button"
-              onClick={onLogout}
-              disabled={loggingOut}
-              className="cursor-pointer rounded-xl border border-[#cfe0d6] bg-white/70 px-3 py-2 text-sm font-medium text-[#2f4b41] hover:bg-[#e7f0ea] disabled:cursor-not-allowed disabled:opacity-60">
-              {loggingOut ? "Logging out..." : "Logout"}
+              onClick={handleLogout}
+              className="shrink-0 cursor-pointer rounded-xl border border-[#cfe0d6] bg-white/70 px-3 py-2 text-sm font-medium text-[#2f4b41] hover:bg-[#e7f0ea]">
+              Logout
             </button>
           </div>
         </aside>

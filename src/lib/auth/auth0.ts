@@ -1,84 +1,46 @@
+import { Auth0Client } from "@auth0/nextjs-auth0/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export const SESSION_COOKIE_NAME = "oz_session";
+const hasRequiredAuth0Config = Boolean(
+  process.env.AUTH0_DOMAIN &&
+    process.env.AUTH0_CLIENT_ID &&
+    process.env.AUTH0_CLIENT_SECRET &&
+    process.env.AUTH0_SECRET &&
+    process.env.APP_BASE_URL,
+);
 
-export type AuthSession = {
-  user: {
-    sub: string;
-    email: string;
-    name: string;
-  };
-};
+const auth0Client = hasRequiredAuth0Config
+  ? new Auth0Client({
+      authorizationParameters: {
+        scope: "openid profile email",
+      },
+      signInReturnToPath: "/pocketDashboard",
+    })
+  : null;
 
-function parseSession(value?: string | null): AuthSession | null {
-  if (!value) return null;
-
-  try {
-    const decoded = decodeURIComponent(value);
-    const parsed = JSON.parse(decoded) as AuthSession;
-    if (!parsed?.user?.sub || !parsed?.user?.email) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-export function serializeSession(session: AuthSession) {
-  return encodeURIComponent(JSON.stringify(session));
-}
-
-export function setSessionCookie(
-  response: NextResponse,
-  session: AuthSession,
-): NextResponse {
-  response.cookies.set({
-    name: SESSION_COOKIE_NAME,
-    value: serializeSession(session),
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-
-  return response;
-}
-
-export function clearSessionCookie(response: NextResponse): NextResponse {
-  response.cookies.set({
-    name: SESSION_COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
-
-  return response;
-}
-
-async function getCookieValueFromServerContext() {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  return cookieStore.get(SESSION_COOKIE_NAME)?.value;
-}
+export const isAuth0Configured = hasRequiredAuth0Config;
 
 export const auth0 = {
-  async middleware(_request?: NextRequest) {
-    void _request;
-    return NextResponse.next();
-  },
-
-  async getSession(request?: NextRequest): Promise<AuthSession | null> {
-    if (request) {
-      return parseSession(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+  async middleware(request?: NextRequest) {
+    if (!auth0Client) {
+      void request;
+      return NextResponse.next();
     }
 
-    const value = await getCookieValueFromServerContext();
-    return parseSession(value);
+    return auth0Client.middleware(request as NextRequest);
+  },
+
+  async getSession(request?: NextRequest) {
+    if (!auth0Client) {
+      void request;
+      return null;
+    }
+
+    if (request) {
+      return auth0Client.getSession(request);
+    }
+
+    return auth0Client.getSession();
   },
 };
