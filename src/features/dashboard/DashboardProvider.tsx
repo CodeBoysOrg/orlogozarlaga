@@ -9,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import { ApiResponse } from "@/types";
+import { useUserPreferences } from "@/features/settings/useUserPreferences";
 import { getCurrentMonthKey } from "./format";
 import {
   DashboardAccount,
@@ -67,6 +68,8 @@ async function parseApiResponseOrThrow<T>(response: Response): Promise<T> {
 }
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
+  const { preferences } = useUserPreferences();
+  const monthStart = Number(preferences.monthStart);
   const [month, setMonth] = useState(getCurrentMonthKey());
   const [accounts, setAccounts] = useState<DashboardAccount[]>([]);
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary);
@@ -109,11 +112,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       };
 
       const [summaryRes, txRes] = await Promise.all([
-        fetch(`/api/summary?month=${encodeURIComponent(monthValue)}`, {
-          cache: "no-store",
-        }),
         fetch(
-          `/api/transactions?month=${encodeURIComponent(monthValue)}&page=1&limit=200`,
+          `/api/summary?month=${encodeURIComponent(monthValue)}&monthStart=${encodeURIComponent(
+            String(monthStart),
+          )}`,
+          {
+          cache: "no-store",
+          },
+        ),
+        fetch(
+          `/api/transactions?month=${encodeURIComponent(monthValue)}&monthStart=${encodeURIComponent(
+            String(monthStart),
+          )}&page=1&limit=200`,
           {
           cache: "no-store",
           },
@@ -146,7 +156,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingMonthData(false);
     }
-  }, []);
+  }, [monthStart]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([loadAccounts(), loadMonthData(month)]);
@@ -217,8 +227,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [loadAccounts]);
 
   useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setMonth(getCurrentMonthKey(monthStart));
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [monthStart]);
+
+  useEffect(() => {
     void loadMonthData(month);
-  }, [loadMonthData, month]);
+  }, [loadMonthData, month, monthStart]);
 
   const value = useMemo<DashboardContextValue>(
     () => ({

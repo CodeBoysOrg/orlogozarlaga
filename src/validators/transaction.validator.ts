@@ -8,11 +8,13 @@ export const monthSchema = z
   );
 
 export const transactionTypeSchema = z.enum(["INCOME", "EXPENSE", "TRANSFER"]);
+export const monthStartSchema = z.enum(["1", "25"]);
 export const pageSchema = z.coerce.number().int().min(1);
 export const limitSchema = z.coerce.number().int().min(1).max(200);
 
 export const listTransactionsQuerySchema = z.object({
   month: monthSchema.optional(),
+  monthStart: monthStartSchema.optional(),
   type: transactionTypeSchema.optional(),
   page: pageSchema.optional(),
   limit: limitSchema.optional(),

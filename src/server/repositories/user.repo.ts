@@ -32,7 +32,7 @@ export const userRepo = {
         where: { id: existingByAuth0.id },
         data: {
           email: input.email,
-          name: input.name ?? null,
+          name: existingByAuth0.name ?? input.name ?? null,
         },
         select: { id: true, auth0Id: true, email: true, name: true },
       });

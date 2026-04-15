@@ -15,6 +15,7 @@
     "jsx": "react-jsx",
     "types": ["jest", "node"],
     "incremental": true,
+    "ignoreDeprecations": "5.0",
     "plugins": [
       {
         "name": "next"
