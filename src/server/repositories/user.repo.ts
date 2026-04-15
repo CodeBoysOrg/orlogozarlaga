@@ -63,4 +63,14 @@ export const userRepo = {
       select: { id: true, auth0Id: true, email: true, name: true },
     });
   },
+
+  updateProfile(userId: string, input: { name: string | null }) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
+      },
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
 };

@@ -133,6 +133,43 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
                 );
               })}
             </div>
+
+            {!isLobbySection && (
+              <div className="theme-user-card mt-4 rounded-2xl p-2">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <span className="theme-muted text-[11px] font-semibold uppercase tracking-[0.16em]">
+                    {copy.appearance}
+                  </span>
+                  <span className="theme-muted text-[11px]">
+                    {themeMode === "dark" ? copy.dark : copy.light}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updatePreferences({ theme: "LIGHT" })}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+                      themeMode === "light"
+                        ? "theme-chip theme-chip-active"
+                        : "theme-button-secondary"
+                    }`}>
+                    <SunMedium size={16} />
+                    {copy.light}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updatePreferences({ theme: "DARK" })}
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+                      themeMode === "dark"
+                        ? "theme-chip theme-chip-active"
+                        : "theme-button-secondary"
+                    }`}>
+                    <MoonStar size={16} />
+                    {copy.dark}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="theme-user-card mt-6 flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5">
