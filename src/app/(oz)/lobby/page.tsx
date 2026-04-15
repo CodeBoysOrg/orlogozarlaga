@@ -1,7 +1,5 @@
-import React from "react";
+import LobbyListScreen from "@/features/lobby/LobbyListScreen";
 
-const Lobby = () => {
-  return <div>Lobby</div>;
-};
-
-export default Lobby;
+export default function LobbyPage() {
+  return <LobbyListScreen />;
+}
