@@ -23,13 +23,15 @@ enum LobbyMemberStatus {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  auth0Id      String?       @unique
-  email        String        @unique
-  name         String?
-  accounts     Account[]
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
+  id               String        @id @default(cuid())
+  auth0Id          String?       @unique
+  email            String        @unique
+  name             String?
+  accounts         Account[]
+  transactions     Transaction[]
+  lobbiesCreated   Lobby[]       @relation("LobbyCreator")
+  lobbyMemberships LobbyMember[]
+  createdAt        DateTime      @default(now())
 }
 
 model Account {
