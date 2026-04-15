@@ -77,7 +77,8 @@ export default function OzLayout({ children }: { children: React.ReactNode }) {
 
             <div className="mt-6 flex gap-2 overflow-x-auto pb-1 lg:mt-8 lg:flex-col lg:overflow-visible">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive =
+                  pathname === link.href || pathname.startsWith(`${link.href}/`);
                 return (
                   <Link
                     href={link.href}
