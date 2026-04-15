@@ -28,9 +28,9 @@ const InputField: React.FC<InputFieldProps> = ({
   disabled = false,
 }) => {
   return (
-    <div className={wrapperClassName}>
+    <div className={`theme-field-shell ${wrapperClassName}`}>
       <p
-        className={`text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c] ${
+        className={`theme-muted text-xs font-medium uppercase tracking-[0.12em] ${
           alignEnd ? "w-full" : ""
         }`}>
         {label}
@@ -43,7 +43,7 @@ const InputField: React.FC<InputFieldProps> = ({
         min={min}
         step={step}
         disabled={disabled}
-        className={`${inputClassName} ${alignEnd ? "text-end" : ""}`}
+        className={`theme-input ${inputClassName} ${alignEnd ? "text-end" : ""}`}
       />
     </div>
   );

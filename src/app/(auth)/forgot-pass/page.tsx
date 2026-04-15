@@ -1,8 +1,17 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { preferencesCookieKey } from "@/features/settings/preferences";
+import { getServerPreferences } from "@/features/settings/server-preferences";
 import { isAuth0Configured } from "@/lib/auth/auth0";
 
-export default function ForgotPassPage() {
-  const loginHref = "/auth/login?returnTo=%2FpocketDashboard";
+export default async function ForgotPassPage() {
+  const cookieStore = await cookies();
+  const preferences = getServerPreferences(
+    cookieStore.get(preferencesCookieKey)?.value,
+  );
+  const loginHref = `/auth/login?returnTo=${encodeURIComponent(
+    preferences?.landingPage ?? "/pocketDashboard",
+  )}`;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-375 items-center px-3 py-6 md:px-5">
@@ -12,7 +21,7 @@ export default function ForgotPassPage() {
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
               Password recovery
             </p>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight text-[#173a30]">
+            <h1 className="theme-heading mt-3 text-3xl font-semibold leading-tight">
               {isAuth0Configured
                 ? "Reset password through Auth0"
                 : "Reset your password"}
@@ -24,7 +33,7 @@ export default function ForgotPassPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#cfe0d6] bg-white/70 p-4 text-sm text-[#2d4b3f]">
+          <div className="theme-user-card theme-text rounded-2xl p-4 text-sm">
             {isAuth0Configured
               ? "Open the hosted login screen and use the built-in Forgot password action there."
               : "After reset, sign in again to continue your dashboard."}
@@ -36,33 +45,33 @@ export default function ForgotPassPage() {
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
               Recovery
             </p>
-            <h2 className="mt-1 text-2xl font-semibold text-[#173a30]">
+            <h2 className="theme-heading mt-1 text-2xl font-semibold">
               Forgot password
             </h2>
           </div>
 
           {isAuth0Configured ? (
             <div className="space-y-3">
-              <p className="text-sm leading-6 text-[#4a6559]">
+              <p className="theme-muted text-sm leading-6">
                 Continue to Auth0 login, then click the built-in password reset link.
               </p>
 
               <a
                 href={loginHref}
-                className="block w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-center text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105">
+                className="theme-button-primary block w-full rounded-xl py-2.5 text-center text-sm font-semibold">
                 Continue to Auth0
               </a>
             </div>
           ) : (
-            <div className="rounded-2xl border border-[#f0c9a6] bg-[#fff7ef] p-4 text-sm leading-6 text-[#7a4a1d]">
+            <div className="theme-status-warning rounded-2xl p-4 text-sm leading-6">
               Password reset is handled only by Auth0 Universal Login. Add the Auth0
               environment variables, then use the hosted login screen.
             </div>
           )}
 
-          <p className="mt-4 text-center text-sm text-[#4a6559]">
+          <p className="theme-muted mt-4 text-center text-sm">
             Back to{" "}
-            <Link href="/login" className="font-medium text-[#2e7964] hover:underline">
+            <Link href="/login" className="theme-icon font-medium hover:underline">
               Login
             </Link>
           </p>

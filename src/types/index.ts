@@ -14,6 +14,12 @@ export type AuthenticatedUser = {
   name: string | null;
 };
 
+export type UserProfileDto = {
+  id: string;
+  email: string;
+  name: string | null;
+};
+
 export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER";
 
 export type TransactionDto = {

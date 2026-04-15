@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
+import { Plus, X } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { useDashboard } from "@/features/dashboard/DashboardProvider";
+import { getCopy } from "@/features/settings/copy";
+import { useUserPreferences } from "@/features/settings/useUserPreferences";
 import { formatYen } from "@/features/dashboard/format";
 
 const AccountsPanel = () => {
   const { accounts, isLoadingAccounts, isSubmitting, error, createAccount } =
     useDashboard();
+  const { preferences } = useUserPreferences();
+  const copy = getCopy(preferences.language);
   const safeAccounts = Array.isArray(accounts) ? accounts : [];
   const totalBalance = safeAccounts.reduce(
     (sum, account) => sum + account.balance,
@@ -15,6 +20,7 @@ const AccountsPanel = () => {
   );
   const [wrap, setWrap] = useState(false);
   const [name, setName] = useState("");
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   async function handleCreateAccount() {
@@ -35,14 +41,19 @@ const AccountsPanel = () => {
     }
 
     setName("");
+    setIsComposerOpen(false);
   }
 
   return (
     <div className="panel-surface flex flex-col gap-2 rounded-3xl p-3">
       <StatCard
-        title="Total balance"
-        value={formatYen(totalBalance)}
-        className="w-full bg-linear-to-br from-[#4ba17a] to-[#2e7964] text-[#f6fcf9]"
+        title={copy.totalBalance}
+        value={formatYen(
+          totalBalance,
+          preferences.currency,
+          preferences.hideBalances,
+        )}
+        className="theme-card-balance w-full"
         valueClassName="text-2xl text-end"
       />
 
@@ -53,59 +64,92 @@ const AccountsPanel = () => {
           <StatCard
             key={account.id}
             title={account.name}
-            value={formatYen(account.balance)}
-            className="w-full bg-[#f8fcf9] text-[#1b332b]"
+            value={formatYen(
+              account.balance,
+              preferences.currency,
+              preferences.hideBalances,
+            )}
+            className="w-full"
             valueClassName="text-xl text-end"
           />
         );
       })}
 
       {isLoadingAccounts && (
-        <p className="px-1 text-xs text-[#4f665c]">Loading accounts...</p>
+        <p className="theme-muted px-1 text-xs">{copy.loadingAccounts}</p>
       )}
 
       {!isLoadingAccounts && !safeAccounts.length && (
-        <p className="rounded-lg border border-dashed border-[#cadcd1] px-2 py-3 text-center text-xs text-[#4f665c]">
-          No accounts found.
+        <p className="theme-empty-state rounded-lg px-2 py-3 text-center text-xs">
+          {copy.noAccounts}
         </p>
       )}
 
-      <div className="mt-1 rounded-2xl border border-[#d7e5dd] bg-[#f7fbf8] p-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#547064]">
-          Create account
-        </p>
-
-        <div className="mt-2 space-y-2">
-          <input
-            type="text"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            maxLength={60}
-            placeholder="Account name"
-            className="w-full rounded-xl border border-[#d5e3da] bg-white px-3 py-2 text-sm text-[#1d3b30] outline-none placeholder:text-[#7b9288]"
-          />
-
-          {(formError || error) && (
-            <p className="text-xs text-[#9a3d2e]">{formError ?? error}</p>
-          )}
+      <div className="theme-surface-muted mt-1 rounded-2xl p-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="theme-muted text-[11px] font-semibold uppercase tracking-[0.16em]">
+              {copy.createAccount}
+            </p>
+          </div>
 
           <button
             type="button"
-            onClick={() => void handleCreateAccount()}
-            disabled={isSubmitting || isLoadingAccounts}
-            className="w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(35,108,86,0.22)] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isSubmitting ? "Creating..." : "Add account"}
+            onClick={() => {
+              setIsComposerOpen((open) => !open);
+              setFormError(null);
+            }}
+            className="theme-button-secondary inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold shadow-[0_6px_14px_rgba(26,70,55,0.08)]">
+            {isComposerOpen ? (
+              <>
+                <X size={14} />
+                {copy.close}
+              </>
+            ) : (
+              <>
+                <Plus size={14} />
+                {copy.new}
+              </>
+            )}
           </button>
         </div>
+
+        {isComposerOpen && (
+          <div className="theme-card-default mt-2.5 rounded-xl p-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={60}
+                placeholder={copy.accountName}
+                className="theme-input min-w-0 flex-1 rounded-lg px-3 py-2 text-sm outline-none transition"
+              />
+
+              <button
+                type="button"
+                onClick={() => void handleCreateAccount()}
+                disabled={isSubmitting || isLoadingAccounts}
+                className="theme-button-primary rounded-lg px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
+                {isSubmitting ? copy.creating : copy.add}
+              </button>
+            </div>
+
+            {(formError || error) && (
+              <p className="theme-status-error mt-2 rounded-lg px-2 py-1.5 text-xs">
+                {formError ?? error}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <button
         type="button"
         onClick={() => setWrap(!wrap)}
         disabled={!safeAccounts.length}
-        className="mt-1 cursor-pointer rounded-lg border border-[#cadcd1] bg-white/70 px-2 py-1 text-xs font-medium text-[#365447] hover:bg-[#edf5f0]">
-        {wrap ? "Show Less" : "Show More"}
+        className="theme-button-secondary mt-1 cursor-pointer rounded-lg px-2 py-1 text-xs font-medium">
+        {wrap ? copy.showLess : copy.showMore}
       </button>
     </div>
   );

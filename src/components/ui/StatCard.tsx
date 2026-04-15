@@ -15,7 +15,7 @@ const StatCard: React.FC<StatCardProps> = ({
 }) => {
   return (
     <div
-      className={`flex flex-col rounded-2xl border border-white/50 p-3 shadow-[0_8px_20px_rgba(15,45,33,0.08)] ${className} `}>
+      className={`theme-card-default flex flex-col rounded-2xl p-3 ${className} `}>
       <p className="text-xs uppercase tracking-[0.14em] opacity-80">{title}</p>
       <p className={valueClassName}>{value}</p>
     </div>

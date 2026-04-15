@@ -14,6 +14,14 @@ export const userRepo = {
     });
   },
 
+  updateProfile(userId: string, data: { name: string | null }) {
+    return prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
+
   async upsertFromAuth0Identity(input: UpsertAuthUserInput) {
     const existingByAuth0 = await prisma.user.findUnique({
       where: { auth0Id: input.auth0Id },
@@ -25,7 +33,7 @@ export const userRepo = {
         where: { id: existingByAuth0.id },
         data: {
           email: input.email,
-          name: input.name ?? null,
+          name: existingByAuth0.name ?? input.name ?? null,
         },
         select: { id: true, auth0Id: true, email: true, name: true },
       });
