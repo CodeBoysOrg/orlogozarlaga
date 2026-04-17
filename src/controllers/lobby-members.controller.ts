@@ -4,6 +4,7 @@ import { fail, ok } from "@/utils/api-response";
 import {
   createLobbyMemberSchema,
   lobbyMemberIdParamSchema,
+  updateLobbyMemberSchema,
 } from "@/validators/lobby-member.validator";
 import { lobbyIdParamSchema } from "@/validators/lobby.validator";
 
@@ -49,6 +50,35 @@ export const lobbyMembersController = {
         user.id,
         parsedLobbyId,
         parsedMemberId,
+      );
+      return ok({ member });
+    } catch (error) {
+      return fail(error);
+    }
+  },
+
+  async update(req: Request, lobbyId: string, memberId: string) {
+    try {
+      const user = await authService.requireAuthenticatedUser();
+      const {
+        lobbyId: parsedLobbyId,
+        memberId: parsedMemberId,
+      } = lobbyMemberIdParamSchema.parse({
+        lobbyId,
+        memberId,
+      });
+      const body = await req.json();
+      const parsed = updateLobbyMemberSchema.parse(body);
+      const member = await lobbyMemberService.update(
+        user.id,
+        parsedLobbyId,
+        parsedMemberId,
+        {
+          ...(typeof parsed.role !== "undefined" ? { role: parsed.role } : {}),
+          ...(typeof parsed.status !== "undefined"
+            ? { status: parsed.status }
+            : {}),
+        },
       );
       return ok({ member });
     } catch (error) {

@@ -5,6 +5,13 @@ type LobbyMemberRouteContext = {
   params: Promise<{ lobbyId: string; memberId: string }>;
 };
 
+export async function PATCH(req: Request, context: LobbyMemberRouteContext) {
+  const { lobbyId, memberId } = await context.params;
+  return withObservedRequest("api.lobbyMembers.update", req, () =>
+    lobbyMembersController.update(req, lobbyId, memberId),
+  );
+}
+
 export async function DELETE(req: Request, context: LobbyMemberRouteContext) {
   const { lobbyId, memberId } = await context.params;
   return withObservedRequest("api.lobbyMembers.delete", req, () =>
