@@ -205,24 +205,22 @@ export const debtService = {
         });
       }
 
-      const nextEvents = existing.events.map(
-        (event: { id: any; amount: any; note: any; eventDate: any }) => {
-          if (event.id !== createEvent.id) {
-            return event;
-          }
+      const nextEvents = existing.events.map((event) => {
+        if (event.id !== createEvent.id) {
+          return event;
+        }
 
-          return {
-            ...event,
-            amount:
-              typeof input.amount !== "undefined" ? input.amount : event.amount,
-            note:
-              typeof input.note !== "undefined"
-                ? input.note?.trim() || null
-                : event.note,
-            eventDate: input.openedAt ?? event.eventDate,
-          };
-        },
-      );
+        return {
+          ...event,
+          amount:
+            typeof input.amount !== "undefined" ? input.amount : event.amount,
+          note:
+            typeof input.note !== "undefined"
+              ? input.note?.trim() || null
+              : event.note,
+          eventDate: input.openedAt ?? event.eventDate,
+        };
+      });
 
       const totals = computeTotals(nextEvents);
       const status = deriveStatus({
