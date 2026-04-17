@@ -13,6 +13,7 @@ function parseSearchParams(url: string) {
   const { searchParams } = new URL(url);
   return listTransactionsQuerySchema.parse({
     month: searchParams.get("month") ?? undefined,
+    monthStart: searchParams.get("monthStart") ?? undefined,
     type: searchParams.get("type") ?? undefined,
     page: searchParams.get("page") ?? undefined,
     limit: searchParams.get("limit") ?? undefined,
@@ -25,9 +26,10 @@ export const transactionsController = {
       const user = await authService.requireAuthenticatedUser();
       const query = parseSearchParams(req.url);
       const month = query.month ?? new Date().toISOString().slice(0, 7);
+      const monthStart = Number(query.monthStart ?? "1");
       const page = query.page ?? 1;
       const limit = query.limit ?? 50;
-      const { start, end } = getMonthRange(month);
+      const { start, end } = getMonthRange(month, monthStart);
 
       const transactions = await transactionService.list({
         userId: user.id,
@@ -101,7 +103,12 @@ export const transactionsController = {
       const parsed = updateTransactionSchema.parse(body);
 
       const updated = await transactionService.update(user.id, parsedId, {
+        accountId: parsed.accountId,
+        toAccountId:
+          typeof parsed.toAccountId !== "undefined" ? parsed.toAccountId : undefined,
+        type: parsed.type,
         category: parsed.category,
+        amount: parsed.amount,
         description: parsed.description,
         date: parsed.date ? new Date(parsed.date) : undefined,
       });

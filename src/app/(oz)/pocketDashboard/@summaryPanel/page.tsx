@@ -5,6 +5,8 @@ import StatCard from "@/components/ui/StatCard";
 import {
   useDashboard,
 } from "@/features/dashboard/DashboardProvider";
+import { getCopy } from "@/features/settings/copy";
+import { useUserPreferences } from "@/features/settings/useUserPreferences";
 import {
   formatMonthLabel,
   formatYen,
@@ -13,21 +15,24 @@ import {
 
 const SummaryPanel = () => {
   const { month, setMonth, summary, isLoadingMonthData } = useDashboard();
+  const { preferences } = useUserPreferences();
+  const copy = getCopy(preferences.language);
+  const locale = preferences.language === "MN" ? "mn-MN" : "en-US";
   const [wrap, setWrap] = useState(false);
 
   return (
     <div className="panel-surface flex flex-col items-center gap-3 rounded-3xl p-3">
       <div className="flex w-full items-center justify-center gap-2">
         <button
-          className="cursor-pointer rounded-lg border border-[#d5e3db] bg-[#eef6f1] px-3 py-2 text-xs font-semibold text-[#2d4b3f] hover:bg-[#dcece3]"
+          className="theme-chip cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold"
           onClick={() => setMonth((current) => shiftMonth(current, -1))}>
           {"<"}
         </button>
-        <button className="rounded-lg border border-[#d2e3d8] bg-white/70 px-3 py-2 text-xs font-semibold text-[#1f3d32]">
-          {formatMonthLabel(month)}
+        <button className="theme-button-secondary rounded-lg px-3 py-2 text-xs font-semibold">
+          {formatMonthLabel(month, Number(preferences.monthStart), locale)}
         </button>
         <button
-          className="cursor-pointer rounded-lg border border-[#d5e3db] bg-[#eef6f1] px-3 py-2 text-xs font-semibold text-[#2d4b3f] hover:bg-[#dcece3]"
+          className="theme-chip cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold"
           onClick={() => setMonth((current) => shiftMonth(current, 1))}>
           {">"}
         </button>
@@ -36,9 +41,13 @@ const SummaryPanel = () => {
       <div className="flex w-full flex-col gap-2 lg:flex-row">
         <div className="flex flex-1 flex-col gap-2">
           <StatCard
-            title="Income"
-            value={formatYen(summary.incomeTotal)}
-            className="w-full bg-linear-to-br from-[#44a079] to-[#2e7d65] text-[#f6fcf9]"
+            title={copy.income}
+            value={formatYen(
+              summary.incomeTotal,
+              preferences.currency,
+              preferences.hideBalances,
+            )}
+            className="theme-card-income w-full"
             valueClassName="text-2xl text-end"
           />
 
@@ -47,8 +56,12 @@ const SummaryPanel = () => {
               <StatCard
                 key={`income-${item.category}`}
                 title={item.category}
-                value={formatYen(item.amount)}
-                className="w-full bg-[#eef6f1] text-[#1f3a30]"
+                value={formatYen(
+                  item.amount,
+                  preferences.currency,
+                  preferences.hideBalances,
+                )}
+                className="theme-surface-soft w-full"
                 valueClassName="text-xl text-end"
               />
             ),
@@ -57,9 +70,13 @@ const SummaryPanel = () => {
 
         <div className="flex flex-1 flex-col gap-2">
           <StatCard
-            title="Expenses"
-            value={formatYen(summary.expenseTotal)}
-            className="w-full bg-linear-to-br from-[#2e6f72] to-[#22565e] text-[#f6fcf9]"
+            title={copy.expense}
+            value={formatYen(
+              summary.expenseTotal,
+              preferences.currency,
+              preferences.hideBalances,
+            )}
+            className="theme-card-expense w-full"
             valueClassName="text-2xl text-end"
           />
 
@@ -70,8 +87,12 @@ const SummaryPanel = () => {
             <StatCard
               key={`expense-${item.category}`}
               title={item.category}
-              value={formatYen(item.amount)}
-              className="w-full bg-[#e8f1f2] text-[#1f3a30]"
+              value={formatYen(
+                item.amount,
+                preferences.currency,
+                preferences.hideBalances,
+              )}
+              className="theme-surface-soft w-full"
               valueClassName="text-xl text-end"
             />
           ))}
@@ -79,15 +100,15 @@ const SummaryPanel = () => {
       </div>
 
       {isLoadingMonthData && (
-        <p className="w-full px-1 text-center text-xs text-[#4f665c]">
-          Loading monthly summary...
+        <p className="theme-muted w-full px-1 text-center text-xs">
+          {copy.monthSummaryLoading}
         </p>
       )}
 
       <button
-        className="cursor-pointer rounded-lg border border-[#cadcd1] bg-white/70 px-2 py-1 text-xs font-medium text-[#365447] hover:bg-[#edf5f0]"
+        className="theme-button-secondary cursor-pointer rounded-lg px-2 py-1 text-xs font-medium"
         onClick={() => setWrap(!wrap)}>
-        {wrap ? "Show Less" : "Show More"}
+        {wrap ? copy.showLess : copy.showMore}
       </button>
     </div>
   );

@@ -11,16 +11,23 @@ import {
 } from "@/features/dashboard/constants";
 import { formatYen } from "@/features/dashboard/format";
 import { TransactionType } from "@/features/dashboard/types";
+import { getCopy } from "@/features/settings/copy";
+import { useUserPreferences } from "@/features/settings/useUserPreferences";
 
 const AddTransaction = () => {
   const {
     accounts,
     summary,
+    editingTransaction,
     isLoadingAccounts,
     isSubmitting,
     error,
+    cancelEditingTransaction,
     createTransaction,
+    updateTransaction,
   } = useDashboard();
+  const { preferences } = useUserPreferences();
+  const copy = getCopy(preferences.language);
   const [transactionType, setTransactionType] = useState<TransactionType>("INCOME");
   const [accountId, setAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
@@ -78,10 +85,41 @@ const AddTransaction = () => {
   const selectedCategoryTotal =
     categoryTotals.find((item) => item.category === category)?.amount ?? 0;
 
+  React.useEffect(() => {
+    if (!editingTransaction) {
+      setTransactionType("INCOME");
+      setAccountId("");
+      setToAccountId("");
+      setIncomeCategory(incomeCategories[0] ?? "");
+      setExpenseCategory(expenseCategories[0] ?? "");
+      setTransferCategory(transferCategories[0] ?? "");
+      setAmount("");
+      setDescription("");
+      setDate(new Date().toISOString().slice(0, 10));
+      setFormError(null);
+      return;
+    }
+
+    setTransactionType(editingTransaction.type);
+    setAccountId(editingTransaction.accountId);
+    setToAccountId(editingTransaction.toAccountId ?? "");
+    if (editingTransaction.type === "INCOME") {
+      setIncomeCategory(editingTransaction.category);
+    } else if (editingTransaction.type === "EXPENSE") {
+      setExpenseCategory(editingTransaction.category);
+    } else {
+      setTransferCategory(editingTransaction.category);
+    }
+    setAmount(String(editingTransaction.amount));
+    setDescription(editingTransaction.description ?? "");
+    setDate(editingTransaction.date.slice(0, 10));
+    setFormError(null);
+  }, [editingTransaction]);
+
   async function handleSubmit() {
     setFormError(null);
 
-    if (!effectiveAccountId) {
+    if (!editingTransaction && !effectiveAccountId) {
       setFormError("Please select an account.");
       return;
     }
@@ -97,7 +135,7 @@ const AddTransaction = () => {
       return;
     }
 
-    if (transactionType === "TRANSFER" && !effectiveToAccountId) {
+    if (!editingTransaction && transactionType === "TRANSFER" && !effectiveToAccountId) {
       setFormError("Please select a destination account.");
       return;
     }
@@ -109,15 +147,26 @@ const AddTransaction = () => {
     }
 
     const dateIso = new Date(`${date}T00:00:00.000Z`).toISOString();
-    const success = await createTransaction({
-      accountId: effectiveAccountId,
-      toAccountId: transactionType === "TRANSFER" ? effectiveToAccountId : undefined,
-      type: transactionType,
-      category: categoryValue,
-      amount: amountValue,
-      description: description.trim() || undefined,
-      dateIso,
-    });
+    const success = editingTransaction
+      ? await updateTransaction({
+          transactionId: editingTransaction.id,
+          accountId: effectiveAccountId,
+          toAccountId: transactionType === "TRANSFER" ? effectiveToAccountId : null,
+          type: transactionType,
+          category: categoryValue,
+          amount: amountValue,
+          description: description.trim() || undefined,
+          dateIso,
+        })
+      : await createTransaction({
+          accountId: effectiveAccountId,
+          toAccountId: transactionType === "TRANSFER" ? effectiveToAccountId : undefined,
+          type: transactionType,
+          category: categoryValue,
+          amount: amountValue,
+          description: description.trim() || undefined,
+          dateIso,
+        });
 
     if (!success) {
       return;
@@ -125,6 +174,9 @@ const AddTransaction = () => {
 
     setAmount("");
     setDescription("");
+    if (editingTransaction) {
+      cancelEditingTransaction();
+    }
   }
 
   return (
@@ -133,41 +185,56 @@ const AddTransaction = () => {
         active={transactionType}
         onChange={(v) => setTransactionType(v as TransactionType)}
         tabs={[
-          { label: "Income", value: "INCOME" },
-          { label: "Expense", value: "EXPENSE" },
-          { label: "Transfer", value: "TRANSFER" },
+          { label: copy.income, value: "INCOME" },
+          { label: copy.expense, value: "EXPENSE" },
+          { label: copy.transfer, value: "TRANSFER" },
         ]}
-        containerClassName="grid w-full grid-cols-3 gap-1 rounded-xl bg-[#e8f1ec] p-1"
+        containerClassName="theme-surface-soft grid w-full grid-cols-3 gap-1 rounded-xl p-1"
       />
+
+      {editingTransaction ? (
+        <div className="theme-surface-soft mt-3 rounded-xl px-3 py-2.5 text-sm">
+          <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+            {copy.editTransaction}
+          </p>
+          <p className="theme-text mt-1 font-medium">
+            {editingTransaction.description ?? editingTransaction.category}
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-3 w-full space-y-3">
         <div className="relative w-full">
           <button
             type="button"
             disabled={!accounts.length || isLoadingAccounts}
-            className="flex w-full cursor-pointer flex-col rounded-xl border border-[#d5e3da] bg-[#eef6f1] p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
+            className="theme-surface-soft flex w-full cursor-pointer flex-col rounded-xl p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
             onClick={() => {
               setAccountIsOpen((open) => !open);
               setToAccountIsOpen(false);
               setTypeIsOpen(false);
             }}>
-            <p className="text-xs uppercase tracking-[0.12em] text-[#547064]">
-              Account
+            <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+              {copy.account}
             </p>
-            <p className="font-medium text-[#1d3b30]">
-              {selectedAccount?.name ?? "Select account"}
+            <p className="theme-text font-medium">
+              {selectedAccount?.name ?? copy.selectAccount}
             </p>
-            <p className="text-end text-sm font-semibold text-[#2a4e42]">
-              {formatYen(selectedAccount?.balance ?? 0)}
+            <p className="theme-text text-end text-sm font-semibold">
+              {formatYen(
+                selectedAccount?.balance ?? 0,
+                preferences.currency,
+                preferences.hideBalances,
+              )}
             </p>
           </button>
 
           {accountIsOpen && (
-            <div className="absolute right-0 z-10 mt-2 flex w-[85%] flex-col gap-1 rounded-xl border border-[#c6d9ce] bg-white p-2 text-[#17352b] shadow-[0_10px_26px_rgba(15,40,29,0.14)]">
+            <div className="theme-dropdown absolute right-0 z-10 mt-2 flex w-[85%] flex-col gap-1 rounded-xl p-2">
               {accounts.map((account) => (
                 <button
                   type="button"
-                  className="cursor-pointer rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#e9f3ed]"
+                  className="theme-dropdown-item cursor-pointer rounded-md px-2 py-1.5 text-left text-sm"
                   key={account.id}
                   onClick={() => {
                     setAccountId(account.id);
@@ -185,29 +252,33 @@ const AddTransaction = () => {
             <button
               type="button"
               disabled={!destinationCandidates.length}
-              className="flex w-full cursor-pointer flex-col rounded-xl border border-[#d5e3da] bg-[#eef6f1] p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
+              className="theme-surface-soft flex w-full cursor-pointer flex-col rounded-xl p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-70"
               onClick={() => {
                 setToAccountIsOpen((open) => !open);
                 setAccountIsOpen(false);
                 setTypeIsOpen(false);
               }}>
-              <p className="text-xs uppercase tracking-[0.12em] text-[#547064]">
-                To Account
+              <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                {copy.toAccount}
               </p>
-              <p className="font-medium text-[#1d3b30]">
-                {selectedToAccount?.name ?? "Select destination"}
+              <p className="theme-text font-medium">
+                {selectedToAccount?.name ?? copy.selectDestination}
               </p>
-              <p className="text-end text-sm font-semibold text-[#2a4e42]">
-                {formatYen(selectedToAccount?.balance ?? 0)}
+              <p className="theme-text text-end text-sm font-semibold">
+                {formatYen(
+                  selectedToAccount?.balance ?? 0,
+                  preferences.currency,
+                  preferences.hideBalances,
+                )}
               </p>
             </button>
 
             {toAccountIsOpen && (
-              <div className="absolute right-0 z-10 mt-2 flex w-[85%] flex-col gap-1 rounded-xl border border-[#c6d9ce] bg-white p-2 text-[#17352b] shadow-[0_10px_26px_rgba(15,40,29,0.14)]">
+              <div className="theme-dropdown absolute right-0 z-10 mt-2 flex w-[85%] flex-col gap-1 rounded-xl p-2">
                 {destinationCandidates.map((account) => (
                   <button
                     type="button"
-                    className="cursor-pointer rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#e9f3ed]"
+                    className="theme-dropdown-item cursor-pointer rounded-md px-2 py-1.5 text-left text-sm"
                     key={account.id}
                     onClick={() => {
                       setToAccountId(account.id);
@@ -224,29 +295,33 @@ const AddTransaction = () => {
         <div className="relative w-full">
           <button
             type="button"
-            className="flex w-full cursor-pointer flex-col rounded-xl border border-[#d5e3da] bg-[#f4faf6] p-2.5 text-left"
+            className="theme-field-shell flex w-full cursor-pointer flex-col rounded-xl p-2.5 text-left"
             onClick={() => {
               setTypeIsOpen((open) => !open);
               setAccountIsOpen(false);
               setToAccountIsOpen(false);
             }}>
-            <p className="text-xs uppercase tracking-[0.12em] text-[#547064]">
-              Category
+            <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+              {copy.category}
             </p>
-            <p className="font-medium text-[#1d3b30]">{category || "-"}</p>
-            <p className="text-end text-sm font-semibold text-[#2a4e42]">
+            <p className="theme-text font-medium">{category || "-"}</p>
+            <p className="theme-text text-end text-sm font-semibold">
               {transactionType === "TRANSFER"
-                ? "Internal movement"
-                : formatYen(selectedCategoryTotal)}
+                ? copy.internalMovement
+                : formatYen(
+                    selectedCategoryTotal,
+                    preferences.currency,
+                    preferences.hideBalances,
+                  )}
             </p>
           </button>
 
           {typeIsOpen && (
-            <div className="absolute right-0 z-10 mt-2 flex w-[85%] flex-col gap-1 rounded-xl border border-[#c6d9ce] bg-white p-2 text-[#17352b] shadow-[0_10px_26px_rgba(15,40,29,0.14)]">
+            <div className="theme-dropdown absolute right-0 z-10 mt-2 flex w-[85%] flex-col gap-1 rounded-xl p-2">
               {categories.map((option) => (
                 <button
                   type="button"
-                  className="cursor-pointer rounded-md px-2 py-1.5 text-left text-sm hover:bg-[#e9f3ed]"
+                  className="theme-dropdown-item cursor-pointer rounded-md px-2 py-1.5 text-left text-sm"
                   key={option}
                   onClick={() => {
                     if (transactionType === "INCOME") {
@@ -266,41 +341,41 @@ const AddTransaction = () => {
         </div>
 
         <InputField
-          label="Price"
+          label={copy.price}
           type="number"
-          placeholder="Enter amount"
+          placeholder={copy.price}
           alignEnd
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
           min={1}
           step={1}
-          wrapperClassName="w-full rounded-xl border border-[#d4e3d9] bg-[#f4faf6] p-2.5"
+          wrapperClassName="w-full rounded-xl p-2.5"
         />
 
         <InputField
-          label="Description"
+          label={copy.description}
           type="text"
-          placeholder="Enter description"
+          placeholder={copy.description}
           alignEnd
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          wrapperClassName="w-full rounded-xl border border-[#d4e3d9] bg-[#f4faf6] p-2.5"
+          wrapperClassName="w-full rounded-xl p-2.5"
         />
 
-        <div className="w-full rounded-xl border border-[#d4e3d9] bg-[#f4faf6] p-2.5">
-          <p className="w-full text-xs font-medium uppercase tracking-[0.12em] text-[#4f665c]">
-            Date
+        <div className="theme-field-shell w-full rounded-xl p-2.5">
+          <p className="theme-muted w-full text-xs font-medium uppercase tracking-[0.12em]">
+            {copy.date}
           </p>
           <input
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-[#d5e3da] bg-white px-2.5 py-2 outline-none focus:border-[#65a48b]"
+            className="theme-input mt-1 w-full rounded-lg px-2.5 py-2 outline-none"
           />
         </div>
 
         {(formError || error) && (
-          <p className="rounded-lg border border-[#f2cccc] bg-[#fff3f3] px-2.5 py-2 text-xs text-[#8b3a3a]">
+          <p className="theme-status-error rounded-lg px-2.5 py-2 text-xs">
             {formError ?? error}
           </p>
         )}
@@ -309,9 +384,22 @@ const AddTransaction = () => {
           type="button"
           onClick={() => void handleSubmit()}
           disabled={isSubmitting || isLoadingAccounts || !accounts.length}
-          className="mt-1 w-full cursor-pointer rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70">
-          {isSubmitting ? "Saving..." : "Add Transaction"}
+          className="theme-button-primary mt-1 w-full cursor-pointer rounded-xl py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
+          {isSubmitting
+            ? copy.saving
+            : editingTransaction
+              ? copy.saveTransaction
+              : copy.addTransaction}
         </button>
+
+        {editingTransaction ? (
+          <button
+            type="button"
+            onClick={cancelEditingTransaction}
+            className="theme-button-secondary w-full rounded-xl py-2.5 text-sm font-medium">
+            {copy.cancelEdit}
+          </button>
+        ) : null}
       </div>
     </div>
   );

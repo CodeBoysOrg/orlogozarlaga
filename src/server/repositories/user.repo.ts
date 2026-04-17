@@ -7,6 +7,20 @@ type UpsertAuthUserInput = {
 };
 
 export const userRepo = {
+  findById(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
+
+  findByEmail(email: string) {
+    return prisma.user.findUnique({
+      where: { email },
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
+
   async upsertFromAuth0Identity(input: UpsertAuthUserInput) {
     const existingByAuth0 = await prisma.user.findUnique({
       where: { auth0Id: input.auth0Id },
@@ -18,7 +32,7 @@ export const userRepo = {
         where: { id: existingByAuth0.id },
         data: {
           email: input.email,
-          name: input.name ?? null,
+          name: existingByAuth0.name ?? input.name ?? null,
         },
         select: { id: true, auth0Id: true, email: true, name: true },
       });
@@ -45,6 +59,16 @@ export const userRepo = {
         auth0Id: input.auth0Id,
         email: input.email,
         name: input.name ?? null,
+      },
+      select: { id: true, auth0Id: true, email: true, name: true },
+    });
+  },
+
+  updateProfile(userId: string, input: { name: string | null }) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: input.name,
       },
       select: { id: true, auth0Id: true, email: true, name: true },
     });

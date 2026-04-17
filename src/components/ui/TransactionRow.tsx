@@ -7,6 +7,7 @@ type TransactionRowProps = {
   meta: string;
   amount: string;
   amountClassName?: string;
+  actions?: React.ReactNode;
 };
 
 const TransactionRow: React.FC<TransactionRowProps> = ({
@@ -15,17 +16,21 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
   meta,
   amount,
   amountClassName = "text-lg md:text-xl text-end font-semibold",
+  actions,
 }) => {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-[#d6e3db] bg-white/85 px-3 py-2.5 shadow-[0_6px_14px_rgba(23,52,39,0.05)]">
-      <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#edf5ef] text-[#1f5d52]">
+    <div className="theme-card-default flex items-center gap-4 rounded-xl px-3 py-2.5">
+      <div className="theme-surface-soft theme-icon grid h-9 w-9 place-items-center rounded-lg">
         <Icon size={18} />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-medium text-[#17352b]">{title}</p>
-        <p className="text-xs text-[#4f665c]">{meta}</p>
+        <p className="theme-heading text-sm font-medium">{title}</p>
+        <p className="theme-muted text-xs">{meta}</p>
       </div>
-      <p className={`text-[#1f2f28] ${amountClassName}`}>{amount}</p>
+      <div className="flex items-center gap-3">
+        {actions}
+        <p className={`theme-text ${amountClassName}`}>{amount}</p>
+      </div>
     </div>
   );
 };

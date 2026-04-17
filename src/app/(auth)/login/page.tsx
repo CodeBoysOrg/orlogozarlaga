@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { preferencesCookieKey } from "@/features/settings/preferences";
+import { getServerPreferences } from "@/features/settings/server-preferences";
 import { isAuth0Configured } from "@/lib/auth/auth0";
 
 type LoginPageProps = {
@@ -8,12 +11,18 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const cookieStore = await cookies();
+  const preferences = getServerPreferences(
+    cookieStore.get(preferencesCookieKey)?.value,
+  );
   const resolvedSearchParams = await searchParams;
   const rawReturnTo = Array.isArray(resolvedSearchParams?.returnTo)
     ? resolvedSearchParams?.returnTo[0]
     : resolvedSearchParams?.returnTo;
   const returnTo =
-    rawReturnTo && rawReturnTo.startsWith("/") ? rawReturnTo : "/pocketDashboard";
+    rawReturnTo && rawReturnTo.startsWith("/")
+      ? rawReturnTo
+      : preferences?.landingPage ?? "/pocketDashboard";
   const loginHref = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
   const signupHref = `/auth/login?screen_hint=signup&returnTo=${encodeURIComponent(
     returnTo,
@@ -28,7 +37,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
               Orlogo Zarlaga
             </p>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight text-[#173a30]">
+            <h1 className="theme-heading mt-3 text-3xl font-semibold leading-tight">
               Welcome back
             </h1>
             <p className="soft-text mt-2 max-w-sm text-sm leading-6">
@@ -37,7 +46,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#cfe0d6] bg-white/70 p-4 text-sm text-[#2d4b3f]">
+          <div className="theme-user-card theme-text rounded-2xl p-4 text-sm">
             After authentication you will be returned to your dashboard.
           </div>
         </section>
@@ -47,36 +56,36 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p className="soft-text text-xs font-semibold uppercase tracking-[0.16em]">
               Sign in
             </p>
-            <h2 className="mt-1 text-2xl font-semibold text-[#173a30]">Login</h2>
+            <h2 className="theme-heading mt-1 text-2xl font-semibold">Login</h2>
           </div>
 
           {isAuth0Configured ? (
             <div className="space-y-3">
               <a
                 href={loginHref}
-                className="block w-full rounded-xl bg-linear-to-r from-[#2f8f70] to-[#2a7262] py-2.5 text-center text-sm font-semibold text-white shadow-[0_12px_24px_rgba(35,108,86,0.25)] hover:brightness-105">
+                className="theme-button-primary block w-full rounded-xl py-2.5 text-center text-sm font-semibold">
                 Continue with Auth0
               </a>
 
-              <p className="text-center text-sm text-[#4a6559]">
+              <p className="theme-muted text-center text-sm">
                 Need password help?{" "}
                 <Link
                   href="/forgot-pass"
-                  className="font-medium text-[#2e7964] hover:underline">
+                  className="theme-icon font-medium hover:underline">
                   Forgot password
                 </Link>
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-[#f0c9a6] bg-[#fff7ef] p-4 text-sm leading-6 text-[#7a4a1d]">
+            <div className="theme-status-warning rounded-2xl p-4 text-sm leading-6">
               Auth0 is not configured. Set `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`,
               `AUTH0_CLIENT_SECRET`, `AUTH0_SECRET`, and `APP_BASE_URL` to enable login.
             </div>
           )}
 
-          <p className="mt-4 text-center text-sm text-[#4a6559]">
+          <p className="theme-muted mt-4 text-center text-sm">
             New here?{" "}
-            <a href={signupCtaHref} className="font-medium text-[#2e7964] hover:underline">
+            <a href={signupCtaHref} className="theme-icon font-medium hover:underline">
               Create account
             </a>
           </p>
