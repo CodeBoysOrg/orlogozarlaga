@@ -33,6 +33,7 @@ import {
   listLobbyTransactions,
   transferFromPocket,
   updateLobby,
+  updateLobbyMember,
   updateLobbyTransaction,
 } from "./api";
 import {
@@ -186,8 +187,9 @@ export default function LobbyDashboardScreen({
   });
 
   const isOwner = lobby?.role === "OWNER";
+  const activeMembers = members.filter((member) => member.status === "ACTIVE");
   const currentMember =
-    members.find((member) => member.userId === currentUserId && member.status === "ACTIVE") ??
+    activeMembers.find((member) => member.userId === currentUserId) ??
     null;
 
   async function loadLobbyData(selectedMonth = month) {
@@ -285,8 +287,8 @@ export default function LobbyDashboardScreen({
 
   useEffect(() => {
     const defaultMemberId = isOwner
-      ? transactionForm.memberId || members[0]?.id || ""
-      : currentMember?.id || members[0]?.id || "";
+      ? transactionForm.memberId || activeMembers[0]?.id || ""
+      : currentMember?.id || activeMembers[0]?.id || "";
 
     if (defaultMemberId && transactionForm.memberId !== defaultMemberId) {
       setTransactionForm((current) => ({
@@ -294,7 +296,7 @@ export default function LobbyDashboardScreen({
         memberId: defaultMemberId,
       }));
     }
-  }, [currentMember?.id, isOwner, members, transactionForm.memberId]);
+  }, [activeMembers, currentMember?.id, isOwner, transactionForm.memberId]);
 
   useEffect(() => {
     const nextMemberId = currentMember?.id || "";
@@ -325,7 +327,9 @@ export default function LobbyDashboardScreen({
     setEditingTransactionId(null);
     setTransactionForm({
       ...createInitialTransactionForm(),
-      memberId: isOwner ? members[0]?.id || "" : currentMember?.id || members[0]?.id || "",
+      memberId: isOwner
+        ? activeMembers[0]?.id || ""
+        : currentMember?.id || activeMembers[0]?.id || "",
     });
   };
 
@@ -460,6 +464,25 @@ export default function LobbyDashboardScreen({
       setError(null);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Failed to remove member");
+    } finally {
+      setMemberSubmitting(false);
+    }
+  };
+
+  const handleMemberRoleToggle = async (member: LobbyMember) => {
+    setMemberSubmitting(true);
+    try {
+      await updateLobbyMember(lobbyId, member.id, {
+        role: member.role === "OWNER" ? "MEMBER" : "OWNER",
+      });
+      await loadLobbyData(month);
+      setError(null);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Failed to update member role",
+      );
     } finally {
       setMemberSubmitting(false);
     }
@@ -1097,7 +1120,7 @@ export default function LobbyDashboardScreen({
               </div>
 
               <div className="mt-4 grid gap-3">
-                {members.map((member) => (
+                {activeMembers.map((member) => (
                   <div
                     key={member.id}
                     className="lobby-card rounded-[1.65rem] p-4">
@@ -1125,19 +1148,30 @@ export default function LobbyDashboardScreen({
                       </div>
 
                       {isOwner && member.id !== currentMember?.id ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleMemberDelete(member.id)}
-                          disabled={memberSubmitting}
-                          className="theme-status-error rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
-                          {copy.remove}
-                        </button>
+                        <div className="flex flex-wrap gap-2 self-start md:self-center">
+                          <button
+                            type="button"
+                            onClick={() => void handleMemberRoleToggle(member)}
+                            disabled={memberSubmitting}
+                            className="theme-button-secondary rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
+                            {member.role === "OWNER"
+                              ? copy.makeMember
+                              : copy.makeOwner}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleMemberDelete(member.id)}
+                            disabled={memberSubmitting}
+                            className="theme-status-error rounded-lg px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-70">
+                            {copy.remove}
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                   </div>
                 ))}
 
-                {!members.length ? (
+                {!activeMembers.length ? (
                   <div className="theme-empty-state rounded-xl px-3 py-5 text-center text-sm">
                     {copy.noMembersFound}
                   </div>
@@ -1410,7 +1444,7 @@ export default function LobbyDashboardScreen({
                             }))
                           }
                           className="theme-input mt-1 w-full rounded-lg px-2.5 py-2 text-sm outline-none">
-                          {members.map((member) => (
+                          {activeMembers.map((member) => (
                             <option key={member.id} value={member.id}>
                               {formatMemberName(member.user)}
                             </option>

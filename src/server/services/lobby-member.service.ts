@@ -142,4 +142,55 @@ export const lobbyMemberService = {
       return toDto(updated);
     });
   },
+
+  async update(
+    userId: string,
+    lobbyId: string,
+    memberId: string,
+    input: {
+      role?: "OWNER" | "MEMBER";
+      status?: "ACTIVE" | "LEFT";
+    },
+  ) {
+    await requireOwnerMembership(userId, lobbyId);
+
+    return prisma.$transaction(async (tx) => {
+      const target = await lobbyMemberRepo.findByIdAndLobbyIdTx(
+        tx,
+        memberId,
+        lobbyId,
+      );
+      if (!target) {
+        throw new NotFoundError("Lobby member not found");
+      }
+
+      const nextRole = input.role ?? target.role;
+      const nextStatus = input.status ?? target.status;
+
+      if (
+        target.role === "OWNER" &&
+        (nextRole !== "OWNER" || nextStatus !== "ACTIVE")
+      ) {
+        const activeOwnerCount =
+          await lobbyMemberRepo.countActiveOwnersByLobbyIdTx(tx, lobbyId);
+        if (activeOwnerCount <= 1) {
+          throw new ValidationAppError(
+            "Lobby must have at least one active owner",
+          );
+        }
+      }
+
+      const updated = await lobbyMemberRepo.updateByIdTx(tx, {
+        memberId,
+        data: {
+          ...(typeof input.role !== "undefined" ? { role: input.role } : {}),
+          ...(typeof input.status !== "undefined"
+            ? { status: input.status }
+            : {}),
+        },
+      });
+
+      return toDto(updated);
+    });
+  },
 };

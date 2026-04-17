@@ -4,6 +4,8 @@ import type {
   CreateLobbyResponseDto,
   CreateLobbyMemberRequestDto,
   CreateLobbyMemberResponseDto,
+  UpdateLobbyMemberRequestDto,
+  UpdateLobbyMemberResponseDto,
   CreateLobbyTransactionRequestDto,
   CreateLobbyTransactionResponseDto,
   GetLobbyMemberSummaryResponseDto,
@@ -454,6 +456,27 @@ export async function deleteLobbyMember(lobbyId: string, memberId: string): Prom
   if (!response.ok || !payload.success) {
     throw new Error(getErrorMessage(response, payload, "Delete lobby member"));
   }
+}
+
+export async function updateLobbyMember(
+  lobbyId: string,
+  memberId: string,
+  input: UpdateLobbyMemberRequestDto,
+): Promise<LobbyMember> {
+  const response = await fetch(`/api/lobbies/${lobbyId}/members/${memberId}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  const payload = await parseJson<UpdateLobbyMemberResponseDto>(response);
+
+  if (!response.ok || !payload.success || !payload.data) {
+    throw new Error(getErrorMessage(response, payload, "Update lobby member"));
+  }
+
+  return mapLobbyMember(lobbyId, payload.data.member);
 }
 
 export async function transferFromPocket(

@@ -152,6 +152,33 @@ export function readStoredPreferences(): UserPreferences {
   });
 }
 
+export function hasStoredPreferences() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  try {
+    const rawStored = window.localStorage.getItem(preferencesStorageKey);
+    if (rawStored) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .some((part) => part.startsWith(`${preferencesCookieKey}=`));
+}
+
+export function initializeDefaultPreferences() {
+  if (typeof window === "undefined") return;
+  if (hasStoredPreferences()) return;
+
+  persistPreferences(defaultPreferences);
+}
+
 export function persistPreferences(preferences: UserPreferences) {
   if (typeof window === "undefined") return;
 

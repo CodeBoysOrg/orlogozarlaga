@@ -207,14 +207,14 @@ export default function LobbyListScreen() {
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="lobby-card rounded-2xl p-3">
+                  <div className="lobby-card min-w-0 rounded-2xl p-3">
                     <div className="theme-icon flex items-center gap-2">
                       <Wallet size={16} />
-                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                      <p className="theme-muted min-w-0 truncate text-[10px] uppercase tracking-[0.08em]">
                         {copy.balance}
                       </p>
                     </div>
-                    <p className="theme-heading mt-2 text-lg font-semibold">
+                    <p className="theme-heading mt-2 truncate text-lg font-semibold">
                       {formatYen(
                         lobby.balance,
                         preferences.currency,
@@ -223,10 +223,10 @@ export default function LobbyListScreen() {
                     </p>
                   </div>
 
-                  <div className="lobby-card rounded-2xl p-3">
+                  <div className="lobby-card min-w-0 rounded-2xl p-3">
                     <div className="theme-icon flex items-center gap-2">
                       <Users size={16} />
-                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                      <p className="theme-muted min-w-0 truncate text-[10px] uppercase tracking-[0.08em]">
                         {copy.members}
                       </p>
                     </div>
@@ -235,14 +235,14 @@ export default function LobbyListScreen() {
                     </p>
                   </div>
 
-                  <div className="lobby-card rounded-2xl p-3">
+                  <div className="lobby-card min-w-0 rounded-2xl p-3">
                     <div className="theme-icon flex items-center gap-2">
                       <Coins size={16} />
-                      <p className="theme-muted text-xs uppercase tracking-[0.12em]">
+                      <p className="theme-muted min-w-0 truncate text-[10px] uppercase tracking-[0.08em]">
                         {copy.updated}
                       </p>
                     </div>
-                    <p className="theme-heading mt-2 text-lg font-semibold">
+                    <p className="theme-heading mt-2 truncate text-lg font-semibold">
                       {new Date(lobby.updatedAt).toLocaleDateString(locale)}
                     </p>
                   </div>
